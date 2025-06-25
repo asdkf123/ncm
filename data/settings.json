@@ -1,0 +1,26 @@
+{
+  "api": {
+    "naverClientId": "9yKCRjemfvO_d2M0Qk3L",
+    "naverClientSecret": "y5WjI5OeKq",
+    "notionApiKey": "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",
+    "notionDatabaseId": "21485acaab148097b3def403d2b43743"
+  },
+  "chrome": {
+    "debugPort": 9222,
+    "debugHost": "localhost",
+    "userDataDir": "/tmp/chrome-debug"
+  },
+  "period": {
+    "scrapingDateRange": 7,
+    "statisticsDateRange": "week",
+    "customStartDate": null,
+    "customEndDate": null,
+    "naverDateOption": "1w"
+  },
+  "scraping": {
+    "newsCount": 1,
+    "cafeCount": 2,
+    "cafeEnabled": true
+  },
+  "updatedAt": "2025-06-25T09:09:34.305Z"
+}

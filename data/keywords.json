@@ -1,0 +1,17 @@
+{
+  "keywords": [
+    {
+      "id": "keyword_1750830838021_z8fzsoa8n",
+      "term": "차지비",
+      "category": "자사",
+      "active": true,
+      "createdAt": "2025-06-25T05:53:58.021Z",
+      "updatedAt": "2025-06-25T05:54:04.983Z"
+    }
+  ],
+  "settings": {
+    "defaultDateRange": 7,
+    "cronTime": "0 10 * * *",
+    "autoExecution": true
+  }
+}
