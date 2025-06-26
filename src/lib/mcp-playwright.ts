@@ -3,13 +3,22 @@ import { CafePost, ScrapingConfig, NaverDateOption } from '@/types/scraping';
 import axios from 'axios';
 import fs from 'fs/promises';
 import path from 'path';
+import { NotionClient } from './notion-client';
 
 export class MCPPlaywrightClient {
   private browser: Browser | null = null;
   private config: ScrapingConfig;
+  private notionClient: NotionClient | null = null;
 
   constructor(config: ScrapingConfig) {
     this.config = config;
+  }
+
+  /**
+   * NotionClient 참조 설정 (중복 검사용)
+   */
+  setNotionClient(notionClient: NotionClient): void {
+    this.notionClient = notionClient;
   }
 
   /**
@@ -582,7 +591,14 @@ export class MCPPlaywrightClient {
           
           console.log(`📄 ${i + 1}/${actualMaxPosts}: "${title?.substring(0, 30)}..." 수집 중...`);
           
-          // 새 탭에서 카페글 스크린샷만 촬영 (최적화된 메서드 사용)
+          // 🔍 중복 검사를 먼저 수행 (스크린샷 촬영 전)
+          const isDuplicate = await this.checkDuplicateBeforeProcessing(title.replace(/\s+/g, ' ').trim(), url);
+          if (isDuplicate) {
+            console.log(`⚠️ ${i + 1}/${actualMaxPosts}: 중복된 카페글 발견, 스킵: "${title?.substring(0, 30)}..."`);
+            continue;
+          }
+          
+          // 중복이 아닐 때만 스크린샷 촬영 및 상세 수집
           const detailedPost = await this.extractDetailedCafePostOptimized(page, url, title.replace(/\s+/g, ' ').trim(), keyword);
           
           if (detailedPost) {
@@ -608,6 +624,31 @@ export class MCPPlaywrightClient {
     }
 
     return posts;
+  }
+
+  /**
+   * 스크린샷 촬영 전 중복 검사
+   */
+  private async checkDuplicateBeforeProcessing(title: string, url: string): Promise<boolean> {
+    if (!this.notionClient) {
+      console.log('⚠️ NotionClient가 설정되지 않아 중복 검사를 건너뜁니다.');
+      return false;
+    }
+
+    try {
+      console.log(`🔍 중복 검사 중: "${title.substring(0, 30)}..."`);
+      const isDuplicate = await this.notionClient.checkDuplicatePublic(title, url);
+      if (isDuplicate) {
+        console.log(`✅ 중복 발견: "${title.substring(0, 30)}..." - 스크린샷 촬영 스킵`);
+        return true;
+      }
+      console.log(`✅ 중복 없음: "${title.substring(0, 30)}..." - 스크린샷 촬영 진행`);
+      return false;
+    } catch (error) {
+      console.error('❌ 중복 검사 오류:', error);
+      // 중복 검사 오류 시 안전을 위해 false 반환 (스크린샷 촬영 진행)
+      return false;
+    }
   }
 
   /**

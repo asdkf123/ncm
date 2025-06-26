@@ -27,7 +27,7 @@ export class NotionClient {
     try {
       console.log(`📝 뉴스 Notion 저장 시도: ${newsItem.title.substring(0, 50)}...`);
       
-      // 중복 검사
+      // 뉴스는 중복이 드물어 저장 시에만 검사 (기존 방식 유지)
       const isDuplicate = await this.checkDuplicate(newsItem.title, newsItem.link);
       if (isDuplicate) {
         console.log(`⚠️ 중복된 뉴스 발견: ${newsItem.title.substring(0, 50)}...`);
@@ -115,15 +115,7 @@ export class NotionClient {
     try {
       console.log(`📝 카페글 Notion 저장 시도: ${cafePost.title.substring(0, 50)}...`);
       
-      // 중복 검사
-      const isDuplicate = await this.checkDuplicate(cafePost.title, cafePost.url);
-      if (isDuplicate) {
-        console.log(`⚠️ 중복된 카페글 발견: ${cafePost.title.substring(0, 50)}...`);
-        return {
-          success: true,
-          duplicateFound: true,
-        };
-      }
+      // 중복 검사는 스크린샷 촬영 전에 이미 완료됨
 
       const response = await this.notion.pages.create({
         parent: {
@@ -439,6 +431,13 @@ export class NotionClient {
       console.error('중복 검사 오류:', error);
       return false; // 오류 시 중복이 아니라고 가정
     }
+  }
+
+  /**
+   * 외부에서 호출 가능한 중복 검사 (스크린샷 촬영 전 사용)
+   */
+  async checkDuplicatePublic(title: string, url: string): Promise<boolean> {
+    return this.checkDuplicate(title, url);
   }
 
   /**
@@ -842,7 +841,7 @@ export class NotionClient {
         return {
           title: properties['제목']?.title?.[0]?.plain_text || '제목 없음',
           category: properties['유형']?.select?.name || '카테고리 없음',
-          keyword: properties['키워드']?.rich_text?.[0]?.plain_text || '키워드 없음',
+          keyword: properties['키워드']?.rich_text?.[0]?.plain_text || '',
           collectedAt: new Date(page.created_time),
           type: (properties['유형']?.select?.name || 'news') === 'cafe' ? 'cafe' : 'news',
         };

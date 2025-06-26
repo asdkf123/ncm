@@ -3,6 +3,95 @@
 import { useState, useEffect } from 'react';
 // import Link from 'next/link'; // 현재 사용하지 않음
 
+// Toast 타입 정의
+interface Toast {
+  id: number;
+  message: string;
+  type: 'success' | 'error' | 'info' | 'warning';
+  duration?: number;
+}
+
+// Toast 컨텍스트
+let toastId = 0;
+let setGlobalToasts: ((toasts: Toast[] | ((prev: Toast[]) => Toast[])) => void) | null = null;
+
+// Toast 함수들
+const showToast = (message: string, type: Toast['type'] = 'info', duration = 5000) => {
+  if (!setGlobalToasts) return;
+
+  const id = ++toastId;
+  const toast: Toast = { id, message, type, duration };
+
+  setGlobalToasts(prev => [...prev, toast]);
+
+  if (duration > 0) {
+    setTimeout(() => {
+      if (setGlobalToasts) {
+        setGlobalToasts(prev => prev.filter(t => t.id !== id));
+      }
+    }, duration);
+  }
+};
+
+const removeToast = (id: number) => {
+  if (!setGlobalToasts) return;
+  setGlobalToasts(prev => prev.filter(t => t.id !== id));
+};
+
+// Toast 컴포넌트
+const ToastContainer = () => {
+  const [toasts, setToasts] = useState<Toast[]>([]);
+
+  useEffect(() => {
+    setGlobalToasts = setToasts;
+    return () => {
+      setGlobalToasts = null;
+    };
+  }, []);
+
+  if (toasts.length === 0) return null;
+
+  return (
+    <div className="fixed top-4 right-4 z-50 space-y-2">
+      {toasts.map((toast) => (
+        <div
+          key={toast.id}
+          className={`
+            max-w-sm w-full px-4 py-3 rounded-lg shadow-lg border-l-4 transform transition-all duration-300 ease-in-out
+            ${toast.type === 'success' ? 'bg-green-50 border-green-400 text-green-800' : ''}
+            ${toast.type === 'error' ? 'bg-red-50 border-red-400 text-red-800' : ''}
+            ${toast.type === 'warning' ? 'bg-yellow-50 border-yellow-400 text-yellow-800' : ''}
+            ${toast.type === 'info' ? 'bg-blue-50 border-blue-400 text-blue-800' : ''}
+          `}
+        >
+          <div className="flex items-start">
+            <div className="flex-shrink-0">
+              {toast.type === 'success' && <span className="text-green-400">✅</span>}
+              {toast.type === 'error' && <span className="text-red-400">❌</span>}
+              {toast.type === 'warning' && <span className="text-yellow-400">⚠️</span>}
+              {toast.type === 'info' && <span className="text-blue-400">ℹ️</span>}
+            </div>
+            <div className="ml-3 flex-1">
+              <p className="text-sm font-medium whitespace-pre-line">{toast.message}</p>
+            </div>
+            <div className="ml-4 flex-shrink-0">
+              <button
+                onClick={() => removeToast(toast.id)}
+                className="inline-flex text-gray-400 hover:text-gray-600 focus:outline-none focus:text-gray-600"
+              >
+                <span className="sr-only">닫기</span>
+                <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 // 툴팁 컴포넌트
 const Tooltip = ({ text, children }: { text: string; children: React.ReactNode }) => {
   return (
@@ -17,10 +106,10 @@ const Tooltip = ({ text, children }: { text: string; children: React.ReactNode }
 };
 
 // 제목과 퀘스천 마크 컴포넌트
-const TitleWithTooltip = ({ title, tooltip, className = "text-2xl font-bold text-slate-800" }: { 
-  title: string; 
-  tooltip: string; 
-  className?: string; 
+const TitleWithTooltip = ({ title, tooltip, className = "text-2xl font-bold text-slate-800" }: {
+  title: string;
+  tooltip: string;
+  className?: string;
 }) => {
   return (
     <div className="flex items-center gap-2">
@@ -35,10 +124,10 @@ const TitleWithTooltip = ({ title, tooltip, className = "text-2xl font-bold text
 };
 
 // 섹션 제목과 퀘스천 마크 컴포넌트
-const SectionTitleWithTooltip = ({ title, tooltip, className = "text-xl font-semibold text-slate-800" }: { 
-  title: string; 
-  tooltip: string; 
-  className?: string; 
+const SectionTitleWithTooltip = ({ title, tooltip, className = "text-xl font-semibold text-slate-800" }: {
+  title: string;
+  tooltip: string;
+  className?: string;
 }) => {
   return (
     <div className="flex items-center gap-2">
@@ -69,11 +158,10 @@ const Sidebar = ({ activeTab, setActiveTab }: { activeTab: string; setActiveTab:
             <button
               key={item.id}
               onClick={() => setActiveTab(item.id)}
-              className={`w-full flex items-center px-3 py-2 rounded-lg text-left transition-colors ${
-                activeTab === item.id
+              className={`w-full flex items-center px-3 py-2 rounded-lg text-left transition-colors ${activeTab === item.id
                   ? 'bg-blue-500 text-white shadow-md'
                   : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-              }`}
+                }`}
             >
               <span className="text-lg mr-3">{item.icon}</span>
               {item.label}
@@ -95,10 +183,10 @@ const DashboardTab = ({ setActiveTab }: { setActiveTab: (tab: string) => void })
     thisWeekCollected: 0,
     thisMonthCollected: 0,
   });
-  const [activities, setActivities] = useState<Array<{id: number; message: string; timestamp: string}>>([]);
-  const [activeKeywords, setActiveKeywords] = useState<Array<{id: string; term: string; category: string}>>([]);
+  const [activities, setActivities] = useState<Array<{ id: number; message: string; timestamp: string }>>([]);
+  const [activeKeywords, setActiveKeywords] = useState<Array<{ id: string; term: string; category: string }>>([]);
   const [loading, setLoading] = useState(false);
-  
+
   // 수집 관련 상태 추가
   const [scrapingMode, setScrapingMode] = useState('normal');
   const [newsCount, setNewsCount] = useState(10);
@@ -109,13 +197,13 @@ const DashboardTab = ({ setActiveTab }: { setActiveTab: (tab: string) => void })
     naverLoggedIn: false,
     portOpen: false,
   });
-  
+
   // 날짜 설정 관련 상태 추가
   const [dateRange, setDateRange] = useState(7); // 스크래핑 날짜 범위 (일)
   const [statisticsPeriod, setStatisticsPeriod] = useState('week'); // 통계 기간
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
-  
+
   // Chrome 제어 관련 상태 추가
   const [showChromeGuide, setShowChromeGuide] = useState(false);
   const [chromeStatus, setChromeStatus] = useState({
@@ -164,8 +252,8 @@ const DashboardTab = ({ setActiveTab }: { setActiveTab: (tab: string) => void })
 
       if (keywordsResult.success) {
         const keywords = keywordsResult.data;
-        const activeKeywordsList = keywords.filter((k: {active: boolean}) => k.active);
-        
+        const activeKeywordsList = keywords.filter((k: { active: boolean }) => k.active);
+
         // Notion 통계 사용 (성공 시) 또는 기본값 사용
         const notionStats = statisticsResult.success ? statisticsResult.statistics : {
           todayCollected: 0,
@@ -188,7 +276,7 @@ const DashboardTab = ({ setActiveTab }: { setActiveTab: (tab: string) => void })
         if (statisticsResult.success && statisticsResult.recentActivity) {
           const formattedActivities = statisticsResult.recentActivity.map((activity: any, index: number) => ({
             id: Date.now() + index,
-            message: `${activity.type === 'cafe' ? '카페' : '뉴스'}: ${activity.title} (${activity.keyword})`,
+            message: `${activity.type === 'cafe' ? '카페' : '뉴스'}: ${activity.title}${activity.keyword ? ` (${activity.keyword})` : ''}`,
             timestamp: new Date(activity.collectedAt).toLocaleTimeString(),
           }));
           setActivities(formattedActivities);
@@ -196,11 +284,11 @@ const DashboardTab = ({ setActiveTab }: { setActiveTab: (tab: string) => void })
       }
     } catch (error) {
       console.error('통계 로딩 실패:', error);
-              // 에러 발생 시 기본값으로 대체
-        setStats(prev => ({
-          ...prev,
-          todayCollected: 0,
-                  totalCollected: 0,
+      // 에러 발생 시 기본값으로 대체
+      setStats(prev => ({
+        ...prev,
+        todayCollected: 0,
+        totalCollected: 0,
         thisWeekCollected: 0,
         thisMonthCollected: 0,
       }));
@@ -214,43 +302,43 @@ const DashboardTab = ({ setActiveTab }: { setActiveTab: (tab: string) => void })
     try {
       setLoading(true);
       setScrapingStatus('running');
-      
-              const response = await fetch('/api/scraping', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            mode: scrapingMode, 
-            testMode: false,
-            dateRange: dateRange
-          }),
-        });
+
+      const response = await fetch('/api/scraping', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mode: scrapingMode,
+          testMode: false,
+          dateRange: dateRange
+        }),
+      });
 
       const result = await response.json();
       if (result.success) {
         const summary = result.data?.summary;
         const totalItems = summary?.totalItems || 0;
         const duration = summary?.duration || 0;
-        
+
         if (totalItems > 0) {
-          alert(`스크래핑이 완료되었습니다!\n수집된 데이터: ${totalItems}개\n소요 시간: ${duration}초`);
+          showToast(`스크래핑이 완료되었습니다!\n수집된 데이터: ${totalItems}개\n소요 시간: ${duration}초`, 'success');
           addActivity(`스크래핑 완료 - ${totalItems}개 수집됨 (${duration}초 소요)`);
         } else {
-          alert('스크래핑은 완료되었지만 새로운 데이터를 찾지 못했습니다.\n로그인 상태나 네트워크를 확인해주세요.');
+          showToast('스크래핑은 완료되었지만 새로운 데이터를 찾지 못했습니다.\n로그인 상태나 네트워크를 확인해주세요.', 'warning');
           addActivity(`스크래핑 완료 - 수집된 데이터 없음`);
         }
-        
+
         setScrapingStatus('idle');
         // 통계 다시 로드
         setTimeout(loadStats, 1000);
       } else {
         const errorMsg = result.error || '스크래핑에 실패했습니다.';
-        alert(`스크래핑 실패: ${errorMsg}`);
+        showToast(`스크래핑 실패: ${errorMsg}`, 'error');
         addActivity(`스크래핑 실패: ${errorMsg}`);
         setScrapingStatus('error');
       }
     } catch (error) {
       console.error('스크래핑 시작 실패:', error);
-      alert('스크래핑 시작에 실패했습니다.');
+      showToast('스크래핑 시작에 실패했습니다.', 'error');
       setScrapingStatus('error');
     } finally {
       setLoading(false);
@@ -261,27 +349,27 @@ const DashboardTab = ({ setActiveTab }: { setActiveTab: (tab: string) => void })
   const handleTestScraping = async () => {
     try {
       setLoading(true);
-      
-              const response = await fetch('/api/scraping', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            mode: scrapingMode, 
-            testMode: true,
-            dateRange: dateRange
-          }),
-        });
+
+      const response = await fetch('/api/scraping', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mode: scrapingMode,
+          testMode: true,
+          dateRange: dateRange
+        }),
+      });
 
       const result = await response.json();
       if (result.success) {
-        alert(`테스트 실행이 완료되었습니다!`);
+        showToast('테스트 실행이 완료되었습니다!', 'success');
         addActivity(`테스트 스크래핑 실행됨 (${scrapingMode} 모드)`);
       } else {
-        alert(result.error || '테스트 실행에 실패했습니다.');
+        showToast(result.error || '테스트 실행에 실패했습니다.', 'error');
       }
     } catch (error) {
       console.error('테스트 실행 실패:', error);
-      alert('테스트 실행에 실패했습니다.');
+      showToast('테스트 실행에 실패했습니다.', 'error');
     } finally {
       setLoading(false);
     }
@@ -291,7 +379,7 @@ const DashboardTab = ({ setActiveTab }: { setActiveTab: (tab: string) => void })
   const handleStopScraping = () => {
     setScrapingStatus('idle');
     addActivity('스크래핑 작업 중지됨');
-    alert('스크래핑이 중지되었습니다.');
+    showToast('스크래핑이 중지되었습니다.', 'info');
   };
 
   // 활동 로그 추가
@@ -309,7 +397,7 @@ const DashboardTab = ({ setActiveTab }: { setActiveTab: (tab: string) => void })
     try {
       const response = await fetch('/api/browser-status');
       const result = await response.json();
-      
+
       if (result.success) {
         setBrowserStatus({
           chromeConnected: result.data.chromeConnected,
@@ -391,7 +479,7 @@ const DashboardTab = ({ setActiveTab }: { setActiveTab: (tab: string) => void })
     try {
       const response = await fetch('/api/chrome');
       const result = await response.json();
-      
+
       if (result.success) {
         setChromeStatus(result.data);
       }
@@ -412,14 +500,14 @@ const DashboardTab = ({ setActiveTab }: { setActiveTab: (tab: string) => void })
 
       const result = await response.json();
       if (result.success) {
-        alert(result.message);
+        showToast(result.message, 'success');
         await checkChromeStatus();
       } else {
-        alert(result.message || 'Chrome 실행에 실패했습니다.');
+        showToast(result.message || 'Chrome 실행에 실패했습니다.', 'error');
       }
     } catch (error) {
       console.error('Chrome 시작 실패:', error);
-      alert('Chrome 시작에 실패했습니다.');
+      showToast('Chrome 시작에 실패했습니다.', 'error');
     } finally {
       setChromeLoading(false);
     }
@@ -437,14 +525,14 @@ const DashboardTab = ({ setActiveTab }: { setActiveTab: (tab: string) => void })
 
       const result = await response.json();
       if (result.success) {
-        alert(result.message);
+        showToast(result.message, 'success');
         await checkChromeStatus();
       } else {
-        alert(result.message || 'Chrome 종료에 실패했습니다.');
+        showToast(result.message || 'Chrome 종료에 실패했습니다.', 'error');
       }
     } catch (error) {
       console.error('Chrome 종료 실패:', error);
-      alert('Chrome 종료에 실패했습니다.');
+      showToast('Chrome 종료에 실패했습니다.', 'error');
     } finally {
       setChromeLoading(false);
     }
@@ -464,7 +552,7 @@ const DashboardTab = ({ setActiveTab }: { setActiveTab: (tab: string) => void })
     loadStats();
     checkBrowserStatus();
     checkChromeStatus();
-    
+
     // 저장된 수집 설정 로드
     const savedMode = localStorage.getItem('scraping-mode');
     if (savedMode) {
@@ -478,11 +566,11 @@ const DashboardTab = ({ setActiveTab }: { setActiveTab: (tab: string) => void })
     <div className="space-y-6">
       {/* 헤더 - 통계 기간 설정 및 새로고침 버튼 포함 */}
       <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
-        <TitleWithTooltip 
-          title="대시보드" 
-          tooltip="실시간 키워드 현황, 수집 통계, 스크래핑 제어 기능을 제공하는 메인 대시보드입니다." 
+        <TitleWithTooltip
+          title="대시보드"
+          tooltip="실시간 키워드 현황, 수집 통계, 스크래핑 제어 기능을 제공하는 메인 대시보드입니다."
         />
-        
+
         {/* 통계 기간 설정과 새로고침 버튼 */}
         <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
           {/* 통계 표시 기간 설정 */}
@@ -604,24 +692,23 @@ const DashboardTab = ({ setActiveTab }: { setActiveTab: (tab: string) => void })
       {/* 수집 컨트롤 */}
       <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
         <div className="flex items-center justify-between mb-4">
-          <SectionTitleWithTooltip 
-            title="수집 제어" 
+          <SectionTitleWithTooltip
+            title="수집 제어"
             tooltip="활성 키워드에 대해 네이버 뉴스와 카페글을 수집하는 스크래핑 작업을 제어합니다."
           />
           <Tooltip text={`현재 스크래핑 상태: ${scrapingStatus === 'running' ? '실행 중 - 스크래핑이 진행되고 있습니다' : scrapingStatus === 'error' ? '오류 - 스크래핑 중 문제가 발생했습니다' : '대기 중 - 스크래핑이 중지된 상태입니다'}`}>
             <div className="flex items-center space-x-2 cursor-help">
-              <div className={`w-3 h-3 rounded-full ${
-                scrapingStatus === 'running' ? 'bg-green-500' : 
-                scrapingStatus === 'error' ? 'bg-red-500' : 'bg-slate-400'
-              }`}></div>
+              <div className={`w-3 h-3 rounded-full ${scrapingStatus === 'running' ? 'bg-green-500' :
+                  scrapingStatus === 'error' ? 'bg-red-500' : 'bg-slate-400'
+                }`}></div>
               <span className="text-slate-600 text-sm">
-                {scrapingStatus === 'running' ? '실행 중' : 
-                 scrapingStatus === 'error' ? '오류' : '대기 중'}
+                {scrapingStatus === 'running' ? '실행 중' :
+                  scrapingStatus === 'error' ? '오류' : '대기 중'}
               </span>
             </div>
           </Tooltip>
         </div>
-        
+
         {/* 수집 개수 설정 */}
         <div className="mb-4 p-4 bg-slate-50 rounded-lg">
           <div className="flex items-center gap-2 mb-4">
@@ -632,7 +719,7 @@ const DashboardTab = ({ setActiveTab }: { setActiveTab: (tab: string) => void })
               </div>
             </Tooltip>
           </div>
-          
+
           {/* 뉴스 수집 개수 */}
           <div className="flex items-center gap-4 mb-3">
             <label className="text-slate-600 w-20">📰 뉴스:</label>
@@ -723,7 +810,7 @@ const DashboardTab = ({ setActiveTab }: { setActiveTab: (tab: string) => void })
             onChange={(e) => setDateRange(parseInt(e.target.value))}
             className="w-full px-3 py-2 border border-slate-300 rounded focus:border-blue-500 focus:outline-none"
           >
-            <option value={1/24}>1시간</option>
+            <option value={1 / 24}>1시간</option>
             <option value={1}>1일</option>
             <option value={7}>1주</option>
             <option value={30}>1개월</option>
@@ -738,7 +825,7 @@ const DashboardTab = ({ setActiveTab }: { setActiveTab: (tab: string) => void })
 
         <div className="flex space-x-4">
           <Tooltip text="설정된 모드와 개수로 실제 스크래핑을 시작합니다. 수집된 데이터는 Notion 데이터베이스에 저장됩니다.">
-            <button 
+            <button
               onClick={handleStartScraping}
               disabled={loading || scrapingStatus === 'running'}
               className="bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 text-white px-4 py-2 rounded-lg transition-colors shadow-sm"
@@ -747,7 +834,7 @@ const DashboardTab = ({ setActiveTab }: { setActiveTab: (tab: string) => void })
             </button>
           </Tooltip>
           <Tooltip text="Notion 저장 없이 스크래핑을 테스트합니다. 수집 기능이 정상 작동하는지 확인할 때 사용하세요.">
-            <button 
+            <button
               onClick={handleTestScraping}
               disabled={loading}
               className="bg-slate-500 hover:bg-slate-600 disabled:bg-slate-300 text-white px-4 py-2 rounded-lg transition-colors shadow-sm"
@@ -756,7 +843,7 @@ const DashboardTab = ({ setActiveTab }: { setActiveTab: (tab: string) => void })
             </button>
           </Tooltip>
           <Tooltip text="진행 중인 스크래핑 작업을 즉시 중지합니다. 현재 수집 중인 항목은 완료되지 않습니다.">
-            <button 
+            <button
               onClick={handleStopScraping}
               disabled={scrapingStatus !== 'running'}
               className="bg-red-500 hover:bg-red-600 disabled:bg-red-300 text-white px-4 py-2 rounded-lg transition-colors shadow-sm"
@@ -771,46 +858,46 @@ const DashboardTab = ({ setActiveTab }: { setActiveTab: (tab: string) => void })
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* 수집 모드 */}
         <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
-          <SectionTitleWithTooltip 
-            title="수집 모드" 
+          <SectionTitleWithTooltip
+            title="수집 모드"
             tooltip="스크래핑 속도와 안전성을 조절합니다. 느릴수록 안전하고, 빠를수록 탐지 위험이 높아집니다."
           />
           <div className="flex flex-col space-y-3 mt-4">
             <Tooltip text="가장 안전한 모드로 2-5분 간격으로 수집합니다. 탐지 위험이 최소화되어 장기간 운영에 적합합니다.">
               <label className="flex items-center cursor-help">
-                <input 
-                  type="radio" 
-                  name="mode" 
+                <input
+                  type="radio"
+                  name="mode"
                   value="safe"
                   checked={scrapingMode === 'safe'}
                   onChange={(e) => handleModeChange(e.target.value)}
-                  className="text-blue-600" 
+                  className="text-blue-600"
                 />
                 <span className="ml-3 text-slate-700">🛡️ 안전 모드 (2-5분 간격)</span>
               </label>
             </Tooltip>
             <Tooltip text="균형잡힌 모드로 30초-3분 간격으로 수집합니다. 속도와 안전성을 모두 고려한 권장 모드입니다.">
               <label className="flex items-center cursor-help">
-                <input 
-                  type="radio" 
-                  name="mode" 
+                <input
+                  type="radio"
+                  name="mode"
                   value="normal"
                   checked={scrapingMode === 'normal'}
                   onChange={(e) => handleModeChange(e.target.value)}
-                  className="text-blue-600" 
+                  className="text-blue-600"
                 />
                 <span className="ml-3 text-slate-700">⚡ 일반 모드 (30초-3분 간격)</span>
               </label>
             </Tooltip>
             <Tooltip text="가장 빠른 모드로 15초-1분 간격으로 수집합니다. 빠른 수집이 가능하지만 탐지 위험이 높아 단기간만 사용하세요.">
               <label className="flex items-center cursor-help">
-                <input 
-                  type="radio" 
-                  name="mode" 
+                <input
+                  type="radio"
+                  name="mode"
                   value="fast"
                   checked={scrapingMode === 'fast'}
                   onChange={(e) => handleModeChange(e.target.value)}
-                  className="text-blue-600" 
+                  className="text-blue-600"
                 />
                 <span className="ml-3 text-slate-700">🚨 긴급 모드 (15초-1분 간격)</span>
               </label>
@@ -820,7 +907,7 @@ const DashboardTab = ({ setActiveTab }: { setActiveTab: (tab: string) => void })
             <p className="text-sm text-slate-600">
               현재 선택: <strong>
                 {scrapingMode === 'safe' && '안전 모드'}
-                {scrapingMode === 'normal' && '일반 모드'} 
+                {scrapingMode === 'normal' && '일반 모드'}
                 {scrapingMode === 'fast' && '긴급 모드'}
               </strong>
             </p>
@@ -830,8 +917,8 @@ const DashboardTab = ({ setActiveTab }: { setActiveTab: (tab: string) => void })
         {/* 브라우저 연결 상태 (설정에서 이동) */}
         <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
-            <SectionTitleWithTooltip 
-              title="브라우저 연결 상태" 
+            <SectionTitleWithTooltip
+              title="브라우저 연결 상태"
               tooltip="카페 스크래핑을 위한 Chrome 브라우저 연결 상태와 네이버 로그인 상태를 확인합니다."
             />
             <div className="flex gap-2">
@@ -843,7 +930,7 @@ const DashboardTab = ({ setActiveTab }: { setActiveTab: (tab: string) => void })
               </button>
             </div>
           </div>
-          
+
           <div className="space-y-3 mb-4">
             <div className="flex items-center justify-between">
               <span className="text-slate-700">Chrome 디버그 포트</span>
@@ -890,7 +977,7 @@ const DashboardTab = ({ setActiveTab }: { setActiveTab: (tab: string) => void })
                 {chromeLoading ? '🔄 종료 중...' : '⏹️ Chrome 종료'}
               </button>
             )}
-            
+
             <button
               onClick={() => {
                 checkBrowserStatus();
@@ -906,9 +993,9 @@ const DashboardTab = ({ setActiveTab }: { setActiveTab: (tab: string) => void })
           <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 mb-4">
             <h5 className="font-medium text-emerald-900 mb-2">🎯 원클릭 Chrome 실행</h5>
             <p className="text-emerald-800 text-sm">
-              <strong>"🚀 Chrome 자동 실행"</strong> 버튼을 클릭하면:<br/>
-              ✅ Chrome이 자동으로 디버그 모드로 실행됩니다<br/>
-              ✅ naver.com이 자동으로 열립니다<br/>
+              <strong>"🚀 Chrome 자동 실행"</strong> 버튼을 클릭하면:<br />
+              ✅ Chrome이 자동으로 디버그 모드로 실행됩니다<br />
+              ✅ naver.com이 자동으로 열립니다<br />
               ✅ 네이버에 로그인만 하면 스크래핑 준비 완료!
             </p>
           </div>
@@ -922,7 +1009,7 @@ const DashboardTab = ({ setActiveTab }: { setActiveTab: (tab: string) => void })
                   💡 <strong>참고:</strong> 위의 자동 실행 버튼이 작동하지 않을 경우에만 아래 방법을 사용하세요.
                 </p>
               </div>
-              
+
               {/* macOS */}
               <div className="mb-4">
                 <h5 className="font-medium text-slate-700 mb-2">🍎 macOS</h5>
@@ -959,16 +1046,16 @@ const DashboardTab = ({ setActiveTab }: { setActiveTab: (tab: string) => void })
         </div>
         <div className="space-y-3">
           {activeKeywords.length === 0 ? (
-                         <div className="text-center py-8 text-slate-500">
-               활성화된 키워드가 없습니다. 
-               <br />
-               <span 
-                 className="text-blue-500 hover:text-blue-600 cursor-pointer"
-                 onClick={() => setActiveTab('keywords')}
-               >
-                 키워드 탭
-               </span>에서 키워드를 추가하고 활성화하세요.
-             </div>
+            <div className="text-center py-8 text-slate-500">
+              활성화된 키워드가 없습니다.
+              <br />
+              <span
+                className="text-blue-500 hover:text-blue-600 cursor-pointer"
+                onClick={() => setActiveTab('keywords')}
+              >
+                키워드 탭
+              </span>에서 키워드를 추가하고 활성화하세요.
+            </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {activeKeywords.map((keyword) => (
@@ -1018,7 +1105,7 @@ const DashboardTab = ({ setActiveTab }: { setActiveTab: (tab: string) => void })
 };
 
 const KeywordsTab = () => {
-  const [keywords, setKeywords] = useState<Array<{id: string; term: string; category: string; active: boolean}>>([]);
+  const [keywords, setKeywords] = useState<Array<{ id: string; term: string; category: string; active: boolean }>>([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [newKeyword, setNewKeyword] = useState({ term: '', category: '' });
@@ -1043,7 +1130,7 @@ const KeywordsTab = () => {
   const handleAddKeyword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newKeyword.term.trim() || !newKeyword.category.trim()) {
-      alert('키워드와 카테고리를 입력해주세요.');
+      showToast('키워드와 카테고리를 입력해주세요.', 'warning');
       return;
     }
 
@@ -1059,13 +1146,13 @@ const KeywordsTab = () => {
         setKeywords([...keywords, result.data]);
         setNewKeyword({ term: '', category: '' });
         setShowAddForm(false);
-        alert('키워드가 추가되었습니다!');
+        showToast('키워드가 추가되었습니다!', 'success');
       } else {
-        alert(result.error || '키워드 추가에 실패했습니다.');
+        showToast(result.error || '키워드 추가에 실패했습니다.', 'error');
       }
     } catch (error) {
       console.error('키워드 추가 실패:', error);
-      alert('키워드 추가에 실패했습니다.');
+      showToast('키워드 추가에 실패했습니다.', 'error');
     }
   };
 
@@ -1081,13 +1168,13 @@ const KeywordsTab = () => {
       const result = await response.json();
       if (result.success) {
         setKeywords(keywords.filter(k => k.id !== id));
-        alert('키워드가 삭제되었습니다!');
+        showToast('키워드가 삭제되었습니다!', 'success');
       } else {
-        alert(result.error || '키워드 삭제에 실패했습니다.');
+        showToast(result.error || '키워드 삭제에 실패했습니다.', 'error');
       }
     } catch (error) {
       console.error('키워드 삭제 실패:', error);
-      alert('키워드 삭제에 실패했습니다.');
+      showToast('키워드 삭제에 실패했습니다.', 'error');
     }
   };
 
@@ -1103,13 +1190,13 @@ const KeywordsTab = () => {
       const result = await response.json();
       if (result.success) {
         setKeywords(keywords.map(k => k.id === id ? result.data : k));
-        alert(result.message);
+        showToast(result.message, 'success');
       } else {
-        alert(result.error || '상태 변경에 실패했습니다.');
+        showToast(result.error || '상태 변경에 실패했습니다.', 'error');
       }
     } catch (error) {
       console.error('키워드 토글 실패:', error);
-      alert('상태 변경에 실패했습니다.');
+      showToast('상태 변경에 실패했습니다.', 'error');
     }
   };
 
@@ -1121,8 +1208,8 @@ const KeywordsTab = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <TitleWithTooltip 
-          title="키워드 관리" 
+        <TitleWithTooltip
+          title="키워드 관리"
           tooltip="스크래핑할 키워드를 등록, 관리하고 활성/비활성 상태를 설정합니다."
         />
         <Tooltip text="새로운 키워드를 추가합니다. 키워드, 카테고리를 설정할 수 있습니다.">
@@ -1137,8 +1224,8 @@ const KeywordsTab = () => {
 
       {showAddForm && (
         <form onSubmit={handleAddKeyword} className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
-          <SectionTitleWithTooltip 
-            title="새 키워드 추가" 
+          <SectionTitleWithTooltip
+            title="새 키워드 추가"
             tooltip="스크래핑할 새로운 키워드를 등록합니다. 키워드와 카테고리는 필수 입력 항목입니다."
           />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
@@ -1148,7 +1235,7 @@ const KeywordsTab = () => {
                 inputMode="text"
                 placeholder="키워드 (예: 부동산, 주식)"
                 value={newKeyword.term}
-                onChange={(e) => setNewKeyword({...newKeyword, term: e.target.value})}
+                onChange={(e) => setNewKeyword({ ...newKeyword, term: e.target.value })}
                 className="bg-white border border-slate-300 text-slate-800 px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none focus:border-blue-500"
                 required
               />
@@ -1158,7 +1245,7 @@ const KeywordsTab = () => {
                 type="text"
                 placeholder="카테고리"
                 value={newKeyword.category}
-                onChange={(e) => setNewKeyword({...newKeyword, category: e.target.value})}
+                onChange={(e) => setNewKeyword({ ...newKeyword, category: e.target.value })}
                 className="bg-white border border-slate-300 text-slate-800 px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none focus:border-blue-500"
                 required
               />
@@ -1234,17 +1321,16 @@ const KeywordsTab = () => {
                   <td className="px-6 py-4">
                     <button
                       onClick={() => handleToggleKeyword(keyword.id)}
-                      className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        keyword.active
+                      className={`px-2 py-1 rounded-full text-xs font-medium ${keyword.active
                           ? 'bg-green-100 text-green-700 hover:bg-green-200'
                           : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                      }`}
+                        }`}
                     >
                       {keyword.active ? '활성' : '비활성'}
                     </button>
                   </td>
                   <td className="px-6 py-4">
-                    <button 
+                    <button
                       onClick={() => handleDeleteKeyword(keyword.id, keyword.term)}
                       className="text-red-600 hover:text-red-700 font-medium"
                     >
@@ -1277,7 +1363,7 @@ const SettingsTab = () => {
     try {
       const response = await fetch('/api/settings');
       const result = await response.json();
-      
+
       if (result.success) {
         const apiSettings = result.data.api;
         setSettings({
@@ -1297,7 +1383,7 @@ const SettingsTab = () => {
     e.preventDefault();
     try {
       setLoading(true);
-      
+
       const response = await fetch('/api/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -1305,18 +1391,18 @@ const SettingsTab = () => {
       });
 
       const result = await response.json();
-      
+
       if (result.success) {
-        alert('🎉 API 설정이 성공적으로 저장되었습니다!\n\n✅ data/settings.json 파일에 저장됨\n✅ 서버 재시작 없이 바로 적용됨');
+        showToast('🎉 API 설정이 성공적으로 저장되었습니다!\n\n✅ data/settings.json 파일에 저장됨\n✅ 서버 재시작 없이 바로 적용됨', 'success');
       } else {
-        alert(`설정 저장 실패: ${result.error}`);
+        showToast(`설정 저장 실패: ${result.error}`, 'error');
         if (result.details && result.details.length > 0) {
-          alert(`오류 상세:\n${result.details.join('\n')}`);
+          showToast(`오류 상세:\n${result.details.join('\n')}`, 'error');
         }
       }
     } catch (error) {
       console.error('설정 저장 실패:', error);
-      alert('설정 저장에 실패했습니다.');
+      showToast('설정 저장에 실패했습니다.', 'error');
     } finally {
       setLoading(false);
     }
@@ -1331,14 +1417,14 @@ const SettingsTab = () => {
 
   return (
     <div className="space-y-6">
-      <TitleWithTooltip 
-        title="설정" 
+      <TitleWithTooltip
+        title="설정"
         tooltip="네이버 API와 Notion API 키를 설정하고 관리합니다."
       />
-      
+
       <form onSubmit={handleSaveSettings} className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
-        <SectionTitleWithTooltip 
-          title="API 설정" 
+        <SectionTitleWithTooltip
+          title="API 설정"
           tooltip="스크래핑과 데이터 저장에 필요한 API 키들을 설정합니다. JSON 파일로 저장되어 서버에서 사용됩니다."
         />
         {/* <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 mb-4">
@@ -1362,7 +1448,7 @@ const SettingsTab = () => {
                 type="text"
                 placeholder="네이버 클라이언트 ID를 입력하세요"
                 value={settings.naverClientId}
-                onChange={(e) => setSettings({...settings, naverClientId: e.target.value})}
+                onChange={(e) => setSettings({ ...settings, naverClientId: e.target.value })}
                 className="w-full bg-white border border-slate-300 text-slate-800 px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none focus:border-blue-500"
               />
             </Tooltip>
@@ -1381,7 +1467,7 @@ const SettingsTab = () => {
                 type="password"
                 placeholder="네이버 클라이언트 시크릿을 입력하세요"
                 value={settings.naverClientSecret}
-                onChange={(e) => setSettings({...settings, naverClientSecret: e.target.value})}
+                onChange={(e) => setSettings({ ...settings, naverClientSecret: e.target.value })}
                 className="w-full bg-white border border-slate-300 text-slate-800 px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none focus:border-blue-500"
               />
             </Tooltip>
@@ -1400,7 +1486,7 @@ const SettingsTab = () => {
                 type="password"
                 placeholder="Notion API 키를 입력하세요"
                 value={settings.notionApiKey}
-                onChange={(e) => setSettings({...settings, notionApiKey: e.target.value})}
+                onChange={(e) => setSettings({ ...settings, notionApiKey: e.target.value })}
                 className="w-full bg-white border border-slate-300 text-slate-800 px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none focus:border-blue-500"
               />
             </Tooltip>
@@ -1419,13 +1505,13 @@ const SettingsTab = () => {
                 type="text"
                 placeholder="Notion 데이터베이스 ID를 입력하세요"
                 value={settings.notionDatabaseId}
-                onChange={(e) => setSettings({...settings, notionDatabaseId: e.target.value})}
+                onChange={(e) => setSettings({ ...settings, notionDatabaseId: e.target.value })}
                 className="w-full bg-white border border-slate-300 text-slate-800 px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none focus:border-blue-500"
               />
             </Tooltip>
           </div>
           <Tooltip text="모든 API 설정을 JSON 파일로 저장합니다. 서버 재시작 없이 바로 적용됩니다.">
-            <button 
+            <button
               type="submit"
               disabled={loading}
               className="bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 text-white px-4 py-2 rounded-lg transition-colors shadow-sm"
@@ -1440,8 +1526,8 @@ const SettingsTab = () => {
 
       {/* JSON 설정 상태 */}
       <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
-        <SectionTitleWithTooltip 
-          title="현재 JSON 설정 상태" 
+        <SectionTitleWithTooltip
+          title="현재 JSON 설정 상태"
           tooltip="JSON 파일에 저장된 API 설정의 현재 상태를 확인합니다. ✅는 설정됨, ❌는 설정되지 않음을 의미합니다."
         />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
@@ -1464,7 +1550,7 @@ const SettingsTab = () => {
         </div>
         <div className="mt-4 p-3 bg-slate-50 rounded-lg">
           <p className="text-slate-600 text-xs">
-            💾 저장 위치: <code className="bg-slate-200 px-1 rounded">data/settings.json</code><br/>
+            💾 저장 위치: <code className="bg-slate-200 px-1 rounded">data/settings.json</code><br />
             🔄 마지막 업데이트: 페이지 로드 시점
           </p>
         </div>
@@ -1497,6 +1583,7 @@ export default function HomePage() {
           {renderContent()}
         </div>
       </div>
+      <ToastContainer />
     </div>
   );
 }

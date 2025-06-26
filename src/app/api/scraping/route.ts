@@ -77,6 +77,9 @@ export async function POST(request: NextRequest) {
     const notionClient = new NotionClient(apiSettings.notionApiKey, apiSettings.notionDatabaseId);
     const mcpClient = new MCPPlaywrightClient(config);
 
+    // MCPPlaywrightClient에 NotionClient 참조 전달 (중복 검사용)
+    mcpClient.setNotionClient(notionClient);
+
     // 테스트 모드가 아닌 경우 브라우저 연결 확인
     let browserConnected = false;
     if (!testMode) {
