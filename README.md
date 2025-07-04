@@ -109,7 +109,9 @@ cd nc
 npm install
 ```
 
-### 2. 환경변수 설정
+### 2. 설정 파일 구성
+
+#### 환경변수 설정
 
 `.env` 파일에 다음 설정을 추가하세요:
 
@@ -126,6 +128,22 @@ NOTION_DATABASE_ID=your_database_id
 CHROME_DEBUG_PORT=9222
 CHROME_DEBUG_HOST=localhost
 ```
+
+#### 데이터 파일 설정
+
+1. **설정 파일 생성**:
+   ```bash
+   cp data/settings.example.json data/settings.json
+   ```
+
+2. **키워드 파일 생성**:
+   ```bash
+   cp data/keywords.example.json data/keywords.json
+   ```
+
+3. **설정 파일 수정**:
+   - `data/settings.json`에서 API 키 정보 입력
+   - `data/keywords.json`에서 모니터링할 키워드 추가
 
 ### 3. Chrome 디버그 모드 실행
 
@@ -152,6 +170,12 @@ npm run dev
 ```
 
 브라우저에서 `http://localhost:3000`에 접속하세요.
+
+## 🔒 보안 주의사항
+
+- **민감한 정보 보호**: `data/settings.json`, `data/keywords.json`, `.env` 파일은 git에 추가하지 마세요
+- **API 키 관리**: 네이버 API 키와 Notion API 키는 절대 공개하지 마세요
+- **개인정보**: 개인적인 키워드나 설정 정보는 예시 파일을 사용하세요
 
 ## 🎯 기간 직접입력 기능 사용법
 

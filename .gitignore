@@ -40,3 +40,7 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 public/screenshots
+
+# sensitive data files
+data/settings.json
+data/keywords.json

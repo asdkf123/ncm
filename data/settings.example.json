@@ -1,9 +1,9 @@
 {
   "api": {
-    "naverClientId": "9yKCRjemfvO_d2M0Qk3L",
-    "naverClientSecret": "y5WjI5OeKq",
-    "notionApiKey": "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",
-    "notionDatabaseId": "21485acaab148097b3def403d2b43743"
+    "naverClientId": "YOUR_NAVER_CLIENT_ID",
+    "naverClientSecret": "YOUR_NAVER_CLIENT_SECRET",
+    "notionApiKey": "YOUR_NOTION_API_KEY",
+    "notionDatabaseId": "YOUR_NOTION_DATABASE_ID"
   },
   "chrome": {
     "debugPort": 9222,
@@ -22,5 +22,5 @@
     "cafeCount": 6,
     "cafeEnabled": true
   },
-  "updatedAt": "2025-06-26T02:09:21.626Z"
-}
+  "updatedAt": "2025-01-01T00:00:00.000Z"
+} 

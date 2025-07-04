@@ -1,0 +1,26 @@
+{
+  "keywords": [
+    {
+      "id": "keyword_example_1",
+      "term": "전기차",
+      "category": "자동차",
+      "active": true,
+      "createdAt": "2025-01-01T00:00:00.000Z",
+      "updatedAt": "2025-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "keyword_example_2",
+      "term": "인공지능",
+      "category": "기술",
+      "active": true,
+      "createdAt": "2025-01-01T00:00:00.000Z",
+      "updatedAt": "2025-01-01T00:00:00.000Z"
+    }
+  ],
+  "settings": {
+    "defaultNewsCount": 10,
+    "defaultDateRange": 7,
+    "cronTime": "0 10 * * *",
+    "autoExecution": true
+  }
+} 
