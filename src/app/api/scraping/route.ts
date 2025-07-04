@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { keywordIds, mode = 'normal', testMode = false, dateRange = 7 } = body;
+    const { keywordIds, mode = 'normal', testMode = false, dateRange = 7, customRange } = body;
 
     console.log('🚀 스크래핑 시작:', { keywordIds, mode, testMode, dateRange });
 
@@ -110,11 +110,24 @@ export async function POST(request: NextRequest) {
         if (!testMode && browserConnected && scrapingSettings.cafeEnabled) {
           try {
             console.log(`☕ 카페 검색 시작... (최대 ${scrapingSettings.cafeCount}개)`);
-            cafePosts = await mcpClient.scrapeCafePosts(
-              keyword.term,
-              scrapingSettings.cafeCount,
-              dateRange // UI에서 받은 dateRange를 카페 스크래핑에 전달
-            );
+            
+            // customRange가 있으면 커스텀 날짜 범위 사용, 없으면 기존 방식
+            if (customRange && customRange.startDate && customRange.endDate) {
+              console.log(`📅 커스텀 날짜 범위 사용: ${customRange.startDate} ~ ${customRange.endDate}`);
+              cafePosts = await mcpClient.scrapeCafePosts(
+                keyword.term,
+                scrapingSettings.cafeCount,
+                undefined, // dateRange 대신 undefined
+                customRange // 네번째 파라미터로 customRange 전달
+              );
+            } else {
+              cafePosts = await mcpClient.scrapeCafePosts(
+                keyword.term,
+                scrapingSettings.cafeCount,
+                dateRange // UI에서 받은 dateRange를 카페 스크래핑에 전달
+              );
+            }
+            
             console.log(`🔍 키워드 "${keyword.term}" 카페 ${cafePosts.length}개 수집 완료`);
           } catch (cafeError) {
             console.error(`❌ 카페 스크래핑 오류 (${keyword.term}):`, cafeError);

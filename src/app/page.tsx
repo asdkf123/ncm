@@ -204,6 +204,11 @@ const DashboardTab = ({ setActiveTab }: { setActiveTab: (tab: string) => void })
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
 
+  // 카페 검색 커스텀 날짜 관련 상태 추가
+  const [cafeeDateMode, setCafeDateMode] = useState<'preset' | 'custom'>('preset');
+  const [cafeCustomStartDate, setCafeCustomStartDate] = useState('');
+  const [cafeCustomEndDate, setCafeCustomEndDate] = useState('');
+
   // Chrome 제어 관련 상태 추가
   const [showChromeGuide, setShowChromeGuide] = useState(false);
   const [chromeStatus, setChromeStatus] = useState({
@@ -303,13 +308,19 @@ const DashboardTab = ({ setActiveTab }: { setActiveTab: (tab: string) => void })
       setLoading(true);
       setScrapingStatus('running');
 
+      // 커스텀 날짜 범위 설정
+      const customRange = cafeeDateMode === 'custom' && cafeCustomStartDate && cafeCustomEndDate
+        ? { startDate: cafeCustomStartDate, endDate: cafeCustomEndDate }
+        : undefined;
+
       const response = await fetch('/api/scraping', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           mode: scrapingMode,
           testMode: false,
-          dateRange: dateRange
+          dateRange: cafeeDateMode === 'preset' ? dateRange : 7, // 기본 옵션일 때만 사용
+          customRange // 커스텀 날짜 범위 추가
         }),
       });
 
@@ -350,13 +361,19 @@ const DashboardTab = ({ setActiveTab }: { setActiveTab: (tab: string) => void })
     try {
       setLoading(true);
 
+      // 커스텀 날짜 범위 설정
+      const customRange = cafeeDateMode === 'custom' && cafeCustomStartDate && cafeCustomEndDate
+        ? { startDate: cafeCustomStartDate, endDate: cafeCustomEndDate }
+        : undefined;
+
       const response = await fetch('/api/scraping', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           mode: scrapingMode,
           testMode: true,
-          dateRange: dateRange
+          dateRange: cafeeDateMode === 'preset' ? dateRange : 7, // 기본 옵션일 때만 사용
+          customRange // 커스텀 날짜 범위 추가
         }),
       });
 
@@ -799,27 +816,92 @@ const DashboardTab = ({ setActiveTab }: { setActiveTab: (tab: string) => void })
         <div className="mb-4 p-4 bg-blue-50 rounded-lg">
           <div className="flex items-center gap-2 mb-3">
             <label className="text-slate-700 font-medium">스크래핑 날짜 범위:</label>
-            <Tooltip text="수집할 뉴스의 발행일 기준으로 최근 몇 일까지의 데이터를 가져올지 설정합니다.">
+            <Tooltip text="수집할 뉴스 및 카페글의 발행일 기준으로 최근 몇 일까지의 데이터를 가져올지 설정합니다.">
               <div className="w-4 h-4 bg-slate-200 hover:bg-slate-300 rounded-full flex items-center justify-center cursor-help transition-colors">
                 <span className="text-slate-600 text-xs font-bold">?</span>
               </div>
             </Tooltip>
           </div>
-          <select
-            value={dateRange}
-            onChange={(e) => setDateRange(parseInt(e.target.value))}
-            className="w-full px-3 py-2 border border-slate-300 rounded focus:border-blue-500 focus:outline-none"
-          >
-            <option value={1 / 24}>1시간</option>
-            <option value={1}>1일</option>
-            <option value={7}>1주</option>
-            <option value={30}>1개월</option>
-            <option value={90}>3개월</option>
-            <option value={180}>6개월</option>
-            <option value={365}>1년</option>
-          </select>
+          
+          {/* 기간 모드 선택 */}
+          <div className="flex items-center gap-4 mb-3">
+            <label className="flex items-center">
+              <input
+                type="radio"
+                name="dateMode"
+                value="preset"
+                checked={cafeeDateMode === 'preset'}
+                onChange={(e) => setCafeDateMode(e.target.value as 'preset' | 'custom')}
+                className="mr-2"
+              />
+              <span className="text-slate-700">기본 옵션</span>
+            </label>
+            <label className="flex items-center">
+              <input
+                type="radio"
+                name="dateMode"
+                value="custom"
+                checked={cafeeDateMode === 'custom'}
+                onChange={(e) => setCafeDateMode(e.target.value as 'preset' | 'custom')}
+                className="mr-2"
+              />
+              <span className="text-slate-700">직접 입력</span>
+            </label>
+          </div>
+
+          {/* 기본 옵션 선택 */}
+          {cafeeDateMode === 'preset' && (
+            <select
+              value={dateRange}
+              onChange={(e) => setDateRange(parseInt(e.target.value))}
+              className="w-full px-3 py-2 border border-slate-300 rounded focus:border-blue-500 focus:outline-none"
+            >
+              <option value={1 / 24}>1시간</option>
+              <option value={1}>1일</option>
+              <option value={7}>1주</option>
+              <option value={30}>1개월</option>
+              <option value={90}>3개월</option>
+              <option value={180}>6개월</option>
+              <option value={365}>1년</option>
+            </select>
+          )}
+
+          {/* 직접 입력 */}
+          {cafeeDateMode === 'custom' && (
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm text-slate-600 mb-1">시작일</label>
+                  <input
+                    type="date"
+                    value={cafeCustomStartDate}
+                    onChange={(e) => setCafeCustomStartDate(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 rounded focus:border-blue-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-slate-600 mb-1">종료일</label>
+                  <input
+                    type="date"
+                    value={cafeCustomEndDate}
+                    onChange={(e) => setCafeCustomEndDate(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 rounded focus:border-blue-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+              {cafeCustomStartDate && cafeCustomEndDate && (
+                <p className="text-xs text-blue-600">
+                  📅 선택된 기간: {cafeCustomStartDate} ~ {cafeCustomEndDate}
+                </p>
+              )}
+            </div>
+          )}
+
           <p className="text-xs text-slate-600 mt-2">
-            📅 현재 수집 범위: 최근 {dateRange}일
+            {cafeeDateMode === 'preset' 
+              ? `📅 현재 수집 범위: 최근 ${dateRange}일` 
+              : '📅 카페글은 직접 입력된 날짜 범위로, 뉴스는 기본 7일 범위로 수집됩니다.'
+            }
           </p>
         </div>
 

@@ -12,14 +12,25 @@ export interface ChromeSettings {
 }
 
 // 네이버 검색 기간 옵션 타입
-export type NaverDateOption = 'all' | '1h' | '1d' | '1w' | '1m' | '3m' | '6m' | '1y';
+export type NaverDateOption = 'all' | '1h' | '1d' | '1w' | '1m' | '3m' | '6m' | '1y' | 'custom';
+
+// 커스텀 날짜 범위 인터페이스
+export interface CustomDateRange {
+  startDate: string; // YYYY-MM-DD 형식
+  endDate: string;   // YYYY-MM-DD 형식
+}
+
+// 기간 설정 모드
+export type DateRangeMode = 'preset' | 'custom';
 
 export interface PeriodSettings {
   scrapingDateRange: number; // 스크래핑할 뉴스의 날짜 범위 (일) - 기존 호환성용
-  naverDateOption: NaverDateOption; // 네이버 검색 기간 옵션 (전체, 1시간, 1일, 1주, 1개월, 3개월, 6개월, 1년)
+  naverDateOption: NaverDateOption; // 네이버 검색 기간 옵션 (전체, 1시간, 1일, 1주, 1개월, 3개월, 6개월, 1년, 직접입력)
   statisticsDateRange: 'today' | 'week' | 'month' | 'custom'; // 통계 표시 기간
   customStartDate?: string; // 커스텀 기간 시작일 (YYYY-MM-DD)
   customEndDate?: string; // 커스텀 기간 종료일 (YYYY-MM-DD)
+  // 카페 검색 전용 커스텀 날짜 범위
+  cafeCustomRange?: CustomDateRange;
 }
 
 export interface ScrapingSettings {
@@ -71,7 +82,8 @@ export function naverOptionToDateOptionNumber(naverOption: NaverDateOption): num
     '1m': 4,   // 1개월
     '3m': 5,   // 3개월
     '6m': 6,   // 6개월
-    '1y': 7    // 1년
-  };
+    '1y': 7,   // 1년
+    'custom': -1 // 직접입력 (URL 파라미터가 아닌 UI 조작 필요)
+  } as const;
   return mapping[naverOption] || 0;
 } 

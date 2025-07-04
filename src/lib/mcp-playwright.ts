@@ -49,7 +49,7 @@ export class MCPPlaywrightClient {
   /**
    * 네이버 카페 검색 및 스크래핑
    */
-  async scrapeCafePosts(keyword: string, maxPosts: number = 10, dateRange?: number): Promise<CafePost[]> {
+  async scrapeCafePosts(keyword: string, maxPosts: number = 10, dateRange?: number, customRange?: { startDate: string; endDate: string }): Promise<CafePost[]> {
     if (!this.browser) {
       throw new Error('브라우저가 연결되지 않았습니다. connectToBrowser()를 먼저 호출하세요.');
     }
@@ -64,7 +64,7 @@ export class MCPPlaywrightClient {
       console.log(`🔍 키워드 "${keyword}" 카페 검색 시작...`);
 
       // 네이버 카페 검색 (에러 처리 개선)
-      await this.searchCafe(page, keyword, dateRange);
+      await this.searchCafe(page, keyword, dateRange, customRange);
 
       // 검색 결과 스크래핑
       const posts = await this.extractCafePosts(page, keyword, maxPosts);
@@ -115,7 +115,7 @@ export class MCPPlaywrightClient {
   /**
    * 카페 검색 실행 (검색창에 키워드 입력 후 카페 탭 클릭)
    */
-  private async searchCafe(page: Page, keyword: string, dateRange?: number): Promise<void> {
+  private async searchCafe(page: Page, keyword: string, dateRange?: number, customRange?: { startDate: string; endDate: string }): Promise<void> {
     try {
       console.log(`🔍 키워드 "${keyword}" 카페 검색 시작...`);
       
@@ -288,7 +288,7 @@ export class MCPPlaywrightClient {
       console.log(`✅ 카페 검색 결과 로딩 완료 (${resultLoaded} 섹션)`);
       
       // 기간 옵션 설정
-      await this.setSearchPeriod(page, dateRange);
+      await this.setSearchPeriod(page, dateRange, customRange);
       
       console.log('⏳ 검색 결과 안정화 대기...');
       await this.humanDelay();
@@ -410,9 +410,32 @@ export class MCPPlaywrightClient {
   /**
    * 검색 기간 옵션 설정
    */
-  private async setSearchPeriod(page: Page, dateRange?: number): Promise<void> {
+  private async setSearchPeriod(page: Page, dateRange?: number, customRange?: { startDate: string; endDate: string }): Promise<void> {
     try {
       console.log('📅 검색 기간 옵션 설정 중...');
+      
+      // 1. 먼저 "옵션" 버튼을 클릭하여 기간 설정 UI 열기
+      console.log('🔍 "옵션" 버튼 찾는 중...');
+      const optionButton = await page.$('.btn_option._search_option_open_btn, .btn_option[aria-label="검색옵션 열기"]');
+      if (!optionButton) {
+        console.log('⚠️ "옵션" 버튼을 찾을 수 없습니다. 기간 설정 건너뜀');
+        return;
+      }
+      
+      console.log('📅 "옵션" 버튼 클릭 중...');
+      await optionButton.click();
+      await this.humanDelay();
+      
+      // 2. 옵션 패널이 열릴 때까지 대기
+      console.log('⏳ 옵션 패널 로딩 대기...');
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // 커스텀 날짜 범위가 제공된 경우 직접입력 사용
+      if (customRange && customRange.startDate && customRange.endDate) {
+        console.log(`📅 커스텀 날짜 범위: ${customRange.startDate} ~ ${customRange.endDate}`);
+        await this.setCustomDateRange(page, customRange.startDate, customRange.endDate);
+        return;
+      }
       
       let naverDateOption: string;
       
@@ -438,26 +461,40 @@ export class MCPPlaywrightClient {
         const { naverOptionToDateOptionNumber } = await import('@/types/settings');
         const dateOptionNumber = naverOptionToDateOptionNumber(naverDateOption as any);
         
-        const optionSelector = `a[href*="date_option=${dateOptionNumber}"]`;
+        // 여러 가능한 선택자 시도
+        const possibleSelectors = [
+          `a[href*="date_option=${dateOptionNumber}"]`,
+          `a[data-value="${dateOptionNumber}"]`,
+          `a[onclick*="date_option=${dateOptionNumber}"]`,
+          `.date_option_${dateOptionNumber}`,
+          `[data-date-option="${dateOptionNumber}"]`
+        ];
         
-        try {
-          // 기간 옵션 찾기
-          const periodOption = await page.$(optionSelector);
-          if (periodOption) {
-            console.log(`📅 기간 옵션 "${naverDateOption}" (date_option=${dateOptionNumber}) 클릭 중...`);
-            await periodOption.click();
-            
-            // 페이지 리로드 대기
-            console.log('⏳ 기간 옵션 적용 대기...');
-            await page.waitForNavigation({ waitUntil: 'networkidle0', timeout: 10000 });
-            await this.humanDelay();
-            
-            console.log(`✅ 기간 옵션 "${naverDateOption}" 적용 완료`);
-          } else {
-            console.log(`⚠️ 기간 옵션 "${naverDateOption}" (date_option=${dateOptionNumber}) 버튼을 찾을 수 없습니다.`);
+        let optionClicked = false;
+        for (const selector of possibleSelectors) {
+          try {
+            const periodOption = await page.$(selector);
+            if (periodOption) {
+              console.log(`📅 기간 옵션 "${naverDateOption}" (date_option=${dateOptionNumber}) 클릭 중... (선택자: ${selector})`);
+              await periodOption.click();
+              
+              // 페이지 리로드 대기
+              console.log('⏳ 기간 옵션 적용 대기...');
+              await page.waitForNavigation({ waitUntil: 'networkidle0', timeout: 10000 });
+              await this.humanDelay();
+              
+              console.log(`✅ 기간 옵션 "${naverDateOption}" 적용 완료`);
+              optionClicked = true;
+              break;
+            }
+          } catch (error) {
+            console.log(`⚠️ 선택자 ${selector} 시도 실패: ${error}`);
+            continue;
           }
-        } catch (periodError) {
-          console.log(`⚠️ 기간 옵션 설정 실패: ${periodError}`);
+        }
+        
+        if (!optionClicked) {
+          console.log(`⚠️ 기간 옵션 "${naverDateOption}" (date_option=${dateOptionNumber}) 버튼을 찾을 수 없습니다.`);
         }
       } else {
         console.log('📅 전체 기간으로 설정됨 (기본값)');
@@ -466,6 +503,139 @@ export class MCPPlaywrightClient {
     } catch (error) {
       console.log(`⚠️ 기간 옵션 설정 오류: ${error}`);
       // 기간 설정 실패는 치명적이지 않으므로 계속 진행
+    }
+  }
+
+  /**
+   * 네이버 카페 검색에서 커스텀 날짜 범위 설정
+   */
+  private async setCustomDateRange(page: Page, startDate: string, endDate: string): Promise<void> {
+    try {
+      console.log(`📅 커스텀 날짜 범위 설정: ${startDate} ~ ${endDate}`);
+      
+      // 1. 직접입력 버튼 클릭 (옵션 패널이 이미 열려있다고 가정)
+      console.log('🔍 직접입력 버튼 찾는 중...');
+      
+      // 여러 가능한 직접입력 버튼 선택자 시도
+      const possibleSelectors = [
+        '._calendar_select_trigger',
+        'a[href*="직접입력"]',
+        '.btn_direct_input',
+        'a[onclick*="direct"]',
+        '.option_direct',
+        'a[data-option="direct"]'
+      ];
+      
+      let customInputTrigger = null;
+      for (const selector of possibleSelectors) {
+        customInputTrigger = await page.$(selector);
+        if (customInputTrigger) {
+          console.log(`📅 직접입력 버튼 발견 (선택자: ${selector})`);
+          break;
+        }
+      }
+      
+      if (!customInputTrigger) {
+        throw new Error('직접입력 버튼을 찾을 수 없습니다.');
+      }
+      
+      console.log('📅 직접입력 버튼 클릭 중...');
+      await customInputTrigger.click();
+      await this.humanDelay();
+      
+      // 2. 캘린더 레이어가 나타날 때까지 대기
+      console.log('⏳ 캘린더 레이어 로딩 대기...');
+      await page.waitForSelector('._calendar_select_layer', { timeout: 5000 }).catch(() => {
+        console.log('⚠️ 캘린더 레이어를 찾을 수 없습니다. 대체 선택자 시도...');
+      });
+      
+      // 3. 시작일 설정
+      console.log(`📅 시작일 설정: ${startDate}`);
+      await this.setDateInCalendar(page, startDate, 'start');
+      
+      // 4. 종료일 설정
+      console.log(`📅 종료일 설정: ${endDate}`);
+      await this.setDateInCalendar(page, endDate, 'end');
+      
+      // 5. 적용 버튼 클릭
+      console.log('✅ 날짜 설정 적용 중...');
+      const applyButton = await page.$('._apply_btn, .btn_apply, .btn_search, .btn_confirm');
+      if (!applyButton) {
+        throw new Error('적용 버튼을 찾을 수 없습니다.');
+      }
+      
+      await Promise.all([
+        page.waitForNavigation({ waitUntil: 'networkidle0', timeout: 15000 }),
+        applyButton.click()
+      ]);
+      
+      console.log('✅ 커스텀 날짜 범위 설정 완료');
+      await this.humanDelay();
+      
+    } catch (error) {
+      console.error('❌ 커스텀 날짜 범위 설정 실패:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 캘린더에서 특정 날짜 설정 (시작일 또는 종료일)
+   */
+  private async setDateInCalendar(page: Page, dateString: string, type: 'start' | 'end'): Promise<void> {
+    try {
+      const [year, month, day] = dateString.split('-');
+      
+      // 시작일/종료일 트리거 클릭
+      const triggerSelector = type === 'start' ? '._start_trigger' : '._end_trigger';
+      const trigger = await page.$(triggerSelector);
+      if (trigger) {
+        await trigger.click();
+        await this.humanDelay();
+      }
+      
+      // 년도 설정
+      console.log(`📅 ${type === 'start' ? '시작일' : '종료일'} 년도 설정: ${year}`);
+      await this.selectDropdownValue(page, 0, year); // 첫 번째 드롭다운 (년)
+      
+      // 월 설정
+      console.log(`📅 ${type === 'start' ? '시작일' : '종료일'} 월 설정: ${parseInt(month)}`);
+      await this.selectDropdownValue(page, 1, parseInt(month).toString()); // 두 번째 드롭다운 (월)
+      
+      // 일 설정
+      console.log(`📅 ${type === 'start' ? '시작일' : '종료일'} 일 설정: ${parseInt(day)}`);
+      await this.selectDropdownValue(page, 2, parseInt(day).toString()); // 세 번째 드롭다운 (일)
+      
+    } catch (error) {
+      console.error(`❌ ${type === 'start' ? '시작일' : '종료일'} 설정 실패:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * 드롭다운에서 특정 값 선택
+   */
+  private async selectDropdownValue(page: Page, dropdownIndex: number, value: string): Promise<void> {
+    try {
+      // 드롭다운 그룹 선택 (년/월/일 순서)
+      const dropdownGroups = await page.$$('._list_root');
+      if (dropdownIndex >= dropdownGroups.length) {
+        throw new Error(`드롭다운 인덱스 ${dropdownIndex}가 범위를 벗어났습니다.`);
+      }
+      
+      const dropdown = dropdownGroups[dropdownIndex];
+      
+      // 해당 값을 가진 항목 찾기 및 클릭
+      const item = await dropdown.$(`[data-value="${value}"]`);
+      if (!item) {
+        throw new Error(`값 "${value}"을 찾을 수 없습니다.`);
+      }
+      
+      await item.click();
+      await this.humanDelay();
+      
+    } catch (error) {
+      console.error(`드롭다운 값 선택 실패 (인덱스: ${dropdownIndex}, 값: ${value}):`, error);
+      throw error;
     }
   }
 

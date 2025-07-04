@@ -1,15 +1,16 @@
 {
   "keywords": [
     {
-      "id": "keyword_1750830838021_z8fzsoa8n",
-      "term": "차지비",
-      "category": "자사",
+      "id": "keyword_1751591348309_y4uvo04vn",
+      "term": "bmw 무제한",
+      "category": "무제한 검출",
       "active": true,
-      "createdAt": "2025-06-25T05:53:58.021Z",
-      "updatedAt": "2025-06-25T05:54:04.983Z"
+      "createdAt": "2025-07-04T01:09:08.310Z",
+      "updatedAt": "2025-07-04T01:09:08.310Z"
     }
   ],
   "settings": {
+    "defaultNewsCount": 10,
     "defaultDateRange": 7,
     "cronTime": "0 10 * * *",
     "autoExecution": true
