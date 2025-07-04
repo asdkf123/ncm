@@ -101,13 +101,79 @@ src/
 
 ## 🚀 설치 및 실행
 
+### 0. 시스템 요구사항
+
+#### Node.js 설치
+- **권장 버전**: Node.js 18.0 이상 (현재 테스트 버전: v22.9.0)
+- **npm 버전**: 9.0 이상 (Node.js와 함께 자동 설치됨)
+
+**다운로드 링크**: [nodejs.org](https://nodejs.org/)
+
+#### 운영체제별 권장사항
+
+**🪟 Windows 사용자:**
+```bash
+# 설치 확인
+node --version   # v18.0.0 이상
+npm --version    # 9.0.0 이상
+
+# npm 속도 개선 (선택사항)
+npm config set registry https://registry.npmjs.org/
+npm install -g npm@latest
+```
+
+**🍎 macOS 사용자:**
+```bash
+# Homebrew로 설치 (권장)
+brew install node
+
+# 설치 확인
+node --version
+npm --version
+```
+
+**🐧 Linux 사용자:**
+```bash
+# Ubuntu/Debian
+curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
+sudo apt-get install -y nodejs
+
+# 설치 확인
+node --version
+npm --version
+```
+
 ### 1. 저장소 클론 및 의존성 설치
 
 ```bash
-git clone <repository-url>
-cd nc
+git clone https://github.com/asdkf123/ncm.git
+cd ncm
 npm install
 ```
+
+**⏰ 설치 시간**: 윈도우에서 5-10분, macOS/Linux에서 2-5분 소요될 수 있습니다.
+
+#### 🪟 윈도우에서 npm 설치 속도 개선 팁
+
+```bash
+# 1. npm 캐시 정리
+npm cache clean --force
+
+# 2. npm 설정 최적화
+npm config set fund false
+npm config set audit false
+
+# 3. 병렬 설치 활성화
+npm config set maxsockets 15
+
+# 4. 설치 시 상세 로그 확인 (문제 발생 시)
+npm install --verbose
+```
+
+**⚠️ 윈도우 사용자 주의사항:**
+- 바이러스 검사 소프트웨어가 설치를 느리게 할 수 있습니다
+- 가능하면 관리자 권한으로 터미널 실행
+- `node_modules` 폴더를 바이러스 검사 제외 목록에 추가 권장
 
 ### 2. 설정 파일 구성
 
